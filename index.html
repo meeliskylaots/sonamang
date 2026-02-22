@@ -76,43 +76,86 @@
         }
         .winner-glow { animation: pulse-gold 1.5s infinite; border-color: #f59e0b !important; }
 
-        @keyframes gold-shimmer {
-            0% { background-position: -200% center; }
-            100% { background-position: 200% center; }
-        }
-        .text-gold {
-            background: linear-gradient(90deg, #f59e0b, #fef3c7, #fbbf24, #f59e0b);
-            background-size: 200% auto;
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            animation: gold-shimmer 3s linear infinite;
+        @keyframes next-step-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); transform: scale(1); }
+            50% { box-shadow: 0 0 30px 10px rgba(255, 255, 255, 0.2); transform: scale(1.03); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); transform: scale(1); }
         }
 
-        .overlay {
+        .next-step-highlight {
+            animation: next-step-pulse 1.5s infinite ease-in-out !important;
+            border: 3px solid white !important;
+            z-index: 10;
+        }
+
+        #toastContainer {
             position: fixed;
-            inset: 0;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 400;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .toast-msg {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(4px);
+            border: 2px solid rgba(255,255,255,0.1);
+            color: white;
+            padding: 1.2rem 3rem;
+            border-radius: 2rem;
+            font-size: 1.8rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.7);
+            opacity: 0;
+            transform: translateY(-30px);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .toast-msg.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @keyframes board-win-zoom {
+            0% { transform: scale(0); opacity: 0; }
+            60% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes pulse-soft {
+            0%, 100% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.05); filter: brightness(1.2); }
+        }
+
+        #boardMessage {
+            min-height: 120px;
             display: flex;
             align-items: center;
             justify-content: center;
+            margin-top: 2rem;
             pointer-events: none;
-            opacity: 0;
-            transition: all 0.3s ease;
-            z-index: 100;
-            background: rgba(2, 6, 23, 0.85);
-            backdrop-filter: blur(8px);
         }
-        .overlay.show { opacity: 1; pointer-events: auto; }
 
-        .overlay-badge {
-            padding: 3rem;
-            border-radius: 2.5rem;
+        .board-message-text {
+            font-size: 5rem;
             font-weight: 900;
             text-transform: uppercase;
-            box-shadow: 0 0 60px rgba(0, 0, 0, 0.8);
-            border: 5px solid rgba(255,255,255,0.1);
             text-align: center;
-            max-width: 90%;
+            opacity: 0;
+            display: none;
+            text-shadow: 0 0 30px currentColor, 0 10px 0 rgba(0,0,0,0.5);
+            letter-spacing: -0.02em;
+        }
+
+        .board-message-text.show {
+            display: block;
+            opacity: 1;
+            animation: board-win-zoom 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, pulse-soft 2s ease-in-out infinite 0.6s;
         }
 
         .active-team {
@@ -125,21 +168,21 @@
             position: absolute;
             width: 10px;
             height: 10px;
-            z-index: 99;
+            z-index: 600;
             border-radius: 2px;
         }
 
-        #guessModal {
+        #guessModal, #wheelModal {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.9);
+            background: rgba(0,0,0,0.85);
             backdrop-filter: blur(15px);
-            z-index: 200;
+            z-index: 500;
             align-items: center;
             justify-content: center;
         }
-        #guessModal.show { display: flex; }
+        #guessModal.show, #wheelModal.show { display: flex; }
 
         .timer-warning {
             animation: timer-pulse 0.5s infinite alternate;
@@ -152,29 +195,93 @@
             from { transform: scale(1); }
             to { transform: scale(1.2); }
         }
+
+        #wheelWrapper {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            margin: 0 auto;
+            transform: scale(0.6);
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #wheelModal.show #wheelWrapper { transform: scale(1); opacity: 1; }
+
+        #theWheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 15px solid #1e293b;
+            box-shadow: 0 0 80px rgba(0,0,0,1), inset 0 0 40px rgba(0,0,0,0.5);
+            transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1);
+            background: #0f172a;
+        }
+
+        #wheelPointer {
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 100px;
+            background: #ef4444;
+            clip-path: polygon(50% 100%, 0 0, 100% 0);
+            z-index: 30;
+            filter: drop-shadow(0 10px 10px rgba(0,0,0,0.8));
+        }
+
+        .wheel-center-gold {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, #fcd34d, #b45309);
+            border: 8px solid #1e293b;
+            border-radius: 50%;
+            z-index: 25;
+            box-shadow: 0 0 30px rgba(251, 191, 36, 0.6);
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col p-6 overflow-hidden">
 
+    <!-- Toast Container -->
+    <div id="toastContainer">
+        <div id="toastMsg" class="toast-msg">TIIMI VAHETUS</div>
+    </div>
+
+    <!-- RATTA MODAAL -->
+    <div id="wheelModal">
+        <div class="flex flex-col items-center">
+            <div id="wheelWrapper">
+                <div id="wheelPointer"></div>
+                <div class="wheel-center-gold"></div>
+                <svg id="theWheel" viewBox="0 0 200 200">
+                </svg>
+            </div>
+            <div id="spinResultText" class="mt-16 text-8xl font-black text-white uppercase tracking-tighter opacity-0 transform translate-y-10 transition-all duration-700">
+                Tulemus...
+            </div>
+        </div>
+    </div>
+
     <!-- Publiku Pakkumise Aken -->
     <div id="guessModal">
         <div class="bg-slate-900 p-10 rounded-[3rem] border-4 border-cyan-500 shadow-[0_0_100px_rgba(6,182,212,0.4)] w-full max-w-4xl text-center">
-            <!-- Esimene samm: Ootame pakkumist -->
             <div id="guessStep1">
-                <h2 class="text-5xl font-black text-cyan-400 mb-6 uppercase tracking-widest animate-pulse">SAAL PAKUB!</h2>
-                <p class="text-2xl text-slate-300 mb-12 italic">Mängujuht, oota saali pakkumist ja siis vajuta nuppu.</p>
-                <button onclick="revealAnswerInModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-black py-6 px-16 rounded-3xl text-3xl uppercase transition-all shadow-xl">Näita Vastust</button>
+                <h2 class="text-6xl font-black text-cyan-400 mb-6 uppercase tracking-widest animate-pulse">SAAL PAKUB!</h2>
+                <p class="text-3xl text-slate-300 mb-12 italic">Mängujuht, oota saali pakkumist...</p>
+                <button id="modalRevealBtn" onclick="revealAnswerInModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-black py-8 px-20 rounded-3xl text-4xl uppercase transition-all shadow-xl next-step-highlight">Näita Vastust</button>
             </div>
-
-            <!-- Teine samm: Vastuse kontroll -->
             <div id="guessStep2" class="hidden">
                 <h2 class="text-3xl font-bold text-slate-400 mb-4 uppercase tracking-widest">Õige vastus on:</h2>
-                <div id="fullPhraseDisplay" class="text-5xl font-black text-white mb-12 tracking-tight leading-tight">...</div>
-                
-                <h2 class="text-3xl font-bold text-slate-400 mb-8 uppercase">Kas pakkumine oli õige?</h2>
-                <div class="flex gap-8 justify-center">
-                    <button onclick="confirmAudienceGuess(true)" class="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black py-5 px-16 rounded-3xl text-3xl uppercase transition-all shadow-[0_10px_0_#065f46]">JAH</button>
-                    <button onclick="confirmAudienceGuess(false)" class="bg-rose-600 hover:bg-rose-500 text-white font-black py-5 px-16 rounded-3xl text-3xl uppercase transition-all shadow-[0_10px_0_#9f1239]">EI</button>
+                <div id="fullPhraseDisplay" class="text-6xl font-black text-white mb-12 tracking-tight leading-tight">...</div>
+                <h2 class="text-4xl font-bold text-slate-400 mb-10 uppercase">Kas oli õige?</h2>
+                <div class="flex gap-10 justify-center">
+                    <button onclick="confirmAudienceGuess(true)" class="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black py-6 px-20 rounded-3xl text-4xl uppercase transition-all shadow-[0_12px_0_#065f46]">JAH</button>
+                    <button onclick="confirmAudienceGuess(false)" class="bg-rose-600 hover:bg-rose-500 text-white font-black py-6 px-20 rounded-3xl text-4xl uppercase transition-all shadow-[0_12px_0_#9f1239]">EI</button>
                 </div>
             </div>
         </div>
@@ -182,9 +289,9 @@
 
     <!-- Päis -->
     <div class="flex justify-between items-start mb-6 gap-6">
-        <div id="teamAContainer" class="bg-blue-600 p-5 rounded-3xl border-4 border-blue-400 text-center min-w-[200px] shadow-2xl transition-all duration-300 active-team">
+        <div id="teamAContainer" class="bg-blue-600 p-5 rounded-3xl border-4 border-blue-400 text-center min-w-[220px] shadow-2xl transition-all duration-300 active-team">
             <h2 class="text-xl font-bold uppercase tracking-widest opacity-80 mb-1">Tiim A</h2>
-            <div id="scoreA" class="text-6xl font-black">0</div>
+            <div id="scoreA" class="text-7xl font-black">0</div>
             <div class="mt-4 flex justify-center gap-2">
                 <button onclick="changeScore('A', -100)" class="bg-blue-800 hover:bg-blue-900 px-3 py-1 rounded-lg text-xs">-100</button>
                 <button onclick="changeScore('A', 100)" class="bg-blue-300 hover:bg-blue-200 text-blue-900 px-3 py-1 rounded-lg font-bold text-xs">+100</button>
@@ -192,21 +299,17 @@
         </div>
 
         <div class="text-center flex-1 px-4">
-            <div id="categoryDisplay" class="text-4xl font-black text-blue-400 uppercase tracking-[0.4em] mb-2 drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">KATEGOORIA</div>
+            <div id="categoryDisplay" class="text-5xl font-black text-blue-400 uppercase tracking-[0.4em] mb-2 drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">KATEGOORIA</div>
             <div id="turnInfo" class="text-2xl text-emerald-400 font-bold uppercase tracking-widest mb-6">Tiim A kord</div>
-
-            <div class="flex justify-center gap-6">
-                <div id="roundDisplay" class="bg-slate-800 border-2 border-slate-700 text-slate-100 px-8 py-4 rounded-3xl font-black tracking-widest text-xl shadow-2xl">I VOOR</div>
-                <div id="wheelDisplay" class="bg-indigo-600 border-2 border-indigo-400 text-white px-10 py-4 rounded-3xl font-black text-3xl shadow-[0_0_30px_rgba(79,70,229,0.4)] min-w-[240px] flex items-center justify-center transition-all">
-                    —
-                </div>
-                <div id="timerDisplay" class="bg-amber-500 text-amber-950 px-8 py-4 rounded-3xl font-black text-3xl shadow-2xl min-w-[120px] transition-all">⏱ 0</div>
+            <div class="flex justify-center gap-12 items-center">
+                <div id="roundDisplay" class="bg-slate-800 border-2 border-slate-700 text-slate-100 px-8 py-4 rounded-3xl font-black tracking-widest text-2xl shadow-2xl">I VOOR</div>
+                <div id="timerDisplay" class="bg-amber-500 text-amber-950 px-8 py-4 rounded-3xl font-black text-5xl shadow-2xl min-w-[160px] transition-all">⏱ 0</div>
             </div>
         </div>
 
-        <div id="teamBContainer" class="bg-rose-600 p-5 rounded-3xl border-4 border-rose-400 text-center min-w-[200px] shadow-2xl transition-all duration-300 opacity-50">
+        <div id="teamBContainer" class="bg-rose-600 p-5 rounded-3xl border-4 border-rose-400 text-center min-w-[220px] shadow-2xl transition-all duration-300 opacity-50">
             <h2 class="text-xl font-bold uppercase tracking-widest opacity-80 mb-1">Tiim B</h2>
-            <div id="scoreB" class="text-6xl font-black">0</div>
+            <div id="scoreB" class="text-7xl font-black">0</div>
             <div class="mt-4 flex justify-center gap-2">
                 <button onclick="changeScore('B', -100)" class="bg-rose-800 hover:bg-rose-900 px-3 py-1 rounded-lg text-xs">-100</button>
                 <button onclick="changeScore('B', 100)" class="bg-rose-300 hover:bg-rose-200 text-rose-900 px-3 py-1 rounded-lg font-bold text-xs">+100</button>
@@ -215,45 +318,41 @@
     </div>
 
     <!-- Mänguväli -->
-    <div id="gameBoard" class="flex-grow flex items-center justify-center py-6">
+    <div id="gameBoard" class="flex-grow flex flex-col items-center justify-center py-6">
         <div id="phraseContainer" class="flex flex-wrap justify-center items-center max-w-7xl gap-y-12"></div>
+        
+        <div id="boardMessage">
+            <div id="boardMsgText" class="board-message-text">LAUSE LAHENDATUD!</div>
+        </div>
     </div>
 
-    <!-- Pakutud tähed -->
-    <div class="mb-8 text-center">
-        <div id="instructionInfo" class="text-2xl text-cyan-400 font-black uppercase tracking-[0.2em] mb-4 hidden animate-pulse">Vali: 3 Kaashäälikut ja 1 Täishäälik</div>
-        <div id="usedLetters" class="text-5xl font-black tracking-[0.5em] min-h-[4rem] flex justify-center items-center flex-wrap gap-4 text-slate-400"></div>
+    <!-- Juhised -->
+    <div class="mb-4 text-center">
+        <div id="instructionInfo" class="text-3xl text-cyan-400 font-black uppercase tracking-[0.2em] mb-4 hidden animate-pulse">Vali: 3 Kaashäälikut ja 1 Täishäälik</div>
+        <div id="usedLetters" class="text-6xl font-black tracking-[0.5em] min-h-[4rem] flex justify-center items-center flex-wrap gap-4 text-slate-500"></div>
     </div>
 
     <!-- Alumine paneel -->
-    <div id="bottomPanel" class="mt-auto flex flex-col xl:flex-row justify-between gap-6 items-center bg-slate-900/90 p-8 rounded-[2.5rem] border border-slate-700 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
+    <div id="bottomPanel" class="mt-auto flex flex-col xl:flex-row justify-between gap-6 items-center bg-slate-900/95 p-8 rounded-[3rem] border border-slate-700 shadow-[0_-20px_50px_rgba(0,0,0,0.8)]">
         <div class="flex flex-wrap justify-center gap-6">
-            <button id="spinBtn" onclick="spinWheel()" class="bg-indigo-500 hover:bg-indigo-400 text-white font-black py-5 px-12 rounded-2xl text-2xl shadow-[0_10px_0_#4338ca] active:translate-y-1 active:shadow-none transition-all uppercase tracking-wider">
-                Keeruta
+            <button id="spinBtn" onclick="spinWheel()" class="bg-indigo-500 hover:bg-indigo-400 text-white font-black py-8 px-16 rounded-[2rem] text-4xl shadow-[0_12px_0_#4338ca] active:translate-y-2 active:shadow-none transition-all uppercase tracking-wider next-step-highlight">
+                Keeruta Ratast
             </button>
-
-            <button id="buyVowelBtn" onclick="buyVowel()" class="bg-amber-500 hover:bg-amber-400 text-amber-950 font-black py-5 px-10 rounded-2xl text-2xl shadow-[0_10px_0_#b45309] active:translate-y-1 active:shadow-none transition-all uppercase tracking-wider">
+            <button id="buyVowelBtn" onclick="buyVowel()" class="bg-amber-500 hover:bg-amber-400 text-amber-950 font-black py-8 px-12 rounded-[2rem] text-3xl shadow-[0_12px_0_#b45309] active:translate-y-2 active:shadow-none transition-all uppercase tracking-wider opacity-50">
                 Osta Täishäälik
             </button>
-
-            <button id="guessPhraseBtn" onclick="openGuessModal()" class="bg-cyan-500 hover:bg-cyan-400 text-cyan-950 font-black py-5 px-10 rounded-2xl text-2xl shadow-[0_10px_0_#0e7490] active:translate-y-1 active:shadow-none transition-all uppercase tracking-wider">
+            <button id="guessPhraseBtn" onclick="openGuessModal()" class="bg-cyan-500 hover:bg-cyan-400 text-cyan-950 font-black py-8 px-12 rounded-[2rem] text-3xl shadow-[0_12px_0_#0e7490] active:translate-y-2 active:shadow-none transition-all uppercase tracking-wider opacity-80">
                 Arva Lause
             </button>
         </div>
-
         <div class="flex gap-4 items-center">
-             <div class="flex bg-black/40 p-2 rounded-2xl gap-2 mr-4">
-                 <button onclick="startRound(1)" class="bg-slate-700 hover:bg-slate-600 px-5 py-3 rounded-xl font-black text-sm uppercase">I</button>
-                 <button onclick="startRound(2)" class="bg-slate-700 hover:bg-slate-600 px-5 py-3 rounded-xl font-black text-sm uppercase">II</button>
-                 <button onclick="startFinalRound()" class="bg-fuchsia-700 hover:bg-fuchsia-600 px-6 py-3 rounded-xl font-black text-sm uppercase shadow-lg shadow-fuchsia-900/40">Finaal</button>
+             <div class="flex bg-black/50 p-3 rounded-2xl gap-3">
+                 <button onclick="startRound(1)" class="bg-slate-700 hover:bg-slate-600 px-6 py-4 rounded-xl font-black text-lg uppercase">I</button>
+                 <button onclick="startRound(2)" class="bg-slate-700 hover:bg-slate-600 px-6 py-4 rounded-xl font-black text-lg uppercase">II</button>
+                 <button onclick="startFinalRound()" class="bg-fuchsia-700 hover:bg-fuchsia-600 px-8 py-4 rounded-xl font-black text-lg uppercase shadow-lg shadow-fuchsia-900/40">Finaal</button>
              </div>
-             <button onclick="newGame()" class="bg-slate-800 hover:bg-slate-700 px-6 py-4 rounded-2xl font-black text-sm uppercase border border-slate-600">Uus Mäng</button>
+             <button id="newGameBtn" onclick="newGame()" class="bg-slate-800 hover:bg-slate-700 px-8 py-5 rounded-2xl font-black text-lg uppercase border-2 border-slate-600">Uus Mäng</button>
         </div>
-    </div>
-
-    <!-- Overlay -->
-    <div id="overlayMessage" class="overlay">
-        <div id="overlayText" class="overlay-badge">TEADE</div>
     </div>
 
     <script>
@@ -272,7 +371,7 @@
             return {
                 correct: () => { playTone(523.25, 'sine', 0.1, 0.1); setTimeout(() => playTone(659.25, 'sine', 0.2, 0.1), 100); },
                 wrong: () => { playTone(220, 'sawtooth', 0.3, 0.05); playTone(210, 'sawtooth', 0.3, 0.05); },
-                tick: () => playTone(800, 'triangle', 0.05, 0.02),
+                tick: () => playTone(800, 'triangle', 0.06, 0.04),
                 bankrupt: () => { [300, 200, 150, 100].forEach((f, i) => setTimeout(() => playTone(f, 'sawtooth', 0.6, 0.05), i * 150)); },
                 fanfare: () => { 
                     const notes = [523, 659, 783, 1046, 783, 1046, 1318];
@@ -282,6 +381,246 @@
                 resume: () => { if (ctx.state === 'suspended') ctx.resume(); }
             };
         })();
+
+        const wheelSectors = [
+            { type: "points", value: 100, label: "100", color: "#3b82f6" },
+            { type: "points", value: 500, label: "500", color: "#10b981" },
+            { type: "bankrupt", label: "PANKROT", color: "#000000" },
+            { type: "points", value: 600, label: "600", color: "#8b5cf6" },
+            { type: "points", value: 200, label: "200", color: "#f59e0b" },
+            { type: "loseTurn", label: "JÄÄD VAHELE", color: "#ef4444" },
+            { type: "points", value: 1000, label: "1000", color: "#ec4899" },
+            { type: "double", label: "TOPELT", color: "#facc15" },
+            { type: "points", value: 300, label: "300", color: "#06b6d4" },
+            { type: "points", value: 1500, label: "1500", color: "#10b981" },
+            { type: "points", value: 400, label: "400", color: "#6366f1" },
+            { type: "points", value: 800, label: "800", color: "#f43f5e" }
+        ];
+
+        let currentPhrase = "", guessedLetters = new Set(), autoRevealedFinal = new Set();
+        let scoreA = 0, scoreB = 0, activeTeam = "A", roundNumber = 1, roundLocked = false;
+        let pendingAction = "none", currentWheelValue = null, timerSeconds = 0, timerInterval = null;
+        let finalMode = false, finalConsonantsLeft = 0, finalVowelsLeft = 0, currentWheelRotation = 0;
+
+        function updateHighlights() {
+            document.querySelectorAll('.next-step-highlight').forEach(el => el.classList.remove('next-step-highlight'));
+            const instr = document.getElementById('instructionInfo');
+            instr.classList.add('hidden');
+            
+            if (roundLocked) {
+                document.getElementById('newGameBtn').classList.add('next-step-highlight');
+                return;
+            }
+
+            if (pendingAction === "none" && !finalMode) {
+                document.getElementById('spinBtn').classList.add('next-step-highlight');
+            } else if (pendingAction === "consonant") {
+                instr.textContent = "VALI KAASHÄÄLIK";
+                instr.classList.remove('hidden');
+            } else if (pendingAction === "vowel") {
+                instr.textContent = "VALI TÄISHÄÄLIK";
+                instr.classList.remove('hidden');
+            } else if (pendingAction === "finalPick") {
+                updateFinalPickDisplay();
+            } else if (finalMode && pendingAction === "none") {
+                document.getElementById('guessPhraseBtn').classList.add('next-step-highlight');
+                instr.textContent = "AEG ARVATA!";
+                instr.classList.remove('hidden');
+            }
+
+            const currentScore = activeTeam === "A" ? scoreA : scoreB;
+            const buyBtn = document.getElementById('buyVowelBtn');
+            if (currentScore >= 250 && pendingAction === "none" && !finalMode) {
+                buyBtn.classList.remove('opacity-50');
+            } else {
+                buyBtn.classList.add('opacity-50');
+            }
+        }
+
+        function showToast(message, type = "info", duration = 2500) {
+            const toast = document.getElementById("toastMsg");
+            toast.textContent = message;
+            toast.className = "toast-msg show";
+            if (type === "success") toast.style.color = "#10b981";
+            else if (type === "danger") toast.style.color = "#ef4444";
+            else toast.style.color = "white";
+            setTimeout(() => toast.classList.remove("show"), duration);
+        }
+
+        function showBoardOverlay(message, type = "success") { 
+            const msgEl = document.getElementById("boardMsgText"); 
+            msgEl.textContent = message; 
+            msgEl.className = "board-message-text show " + (type === "success" ? "text-emerald-400" : "text-rose-500"); 
+            updateHighlights();
+        }
+
+        function generateWheel() {
+            const svg = document.getElementById("theWheel");
+            svg.innerHTML = "";
+            const step = 360 / wheelSectors.length;
+            wheelSectors.forEach((s, i) => {
+                const start = i * step, end = (i + 1) * step;
+                const x1 = 100 + 100 * Math.cos(Math.PI * start / 180), y1 = 100 + 100 * Math.sin(Math.PI * start / 180);
+                const x2 = 100 + 100 * Math.cos(Math.PI * end / 180), y2 = 100 + 100 * Math.sin(Math.PI * end / 180);
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", `M 100 100 L ${x1} ${y1} A 100 100 0 0 1 ${x2} ${y2} Z`);
+                path.setAttribute("fill", s.color);
+                path.setAttribute("stroke", "#ffffff");
+                path.setAttribute("stroke-width", "0.5");
+                svg.appendChild(path);
+                const angle = start + step / 2;
+                const tx = 100 + 75 * Math.cos(Math.PI * angle / 180), ty = 100 + 75 * Math.sin(Math.PI * angle / 180);
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", tx); text.setAttribute("y", ty); text.setAttribute("fill", "white");
+                text.setAttribute("font-size", s.label.length > 8 ? "4" : "6"); text.setAttribute("font-weight", "900");
+                text.setAttribute("text-anchor", "middle"); text.setAttribute("transform", `rotate(${angle + 90}, ${tx}, ${ty})`);
+                text.textContent = s.label;
+                svg.appendChild(text);
+            });
+        }
+
+        function spinWheel() {
+            if (roundLocked || finalMode || pendingAction !== "none") return;
+            AudioEngine.resume();
+            const modal = document.getElementById("wheelModal");
+            const resultText = document.getElementById("spinResultText");
+            const wheel = document.getElementById("theWheel");
+            modal.classList.add("show");
+            resultText.style.opacity = "0";
+            const idx = Math.floor(Math.random() * wheelSectors.length);
+            const sector = wheelSectors[idx];
+            const step = 360 / wheelSectors.length;
+            const target = 360 - (idx * step) - (step / 2) - 90;
+            currentWheelRotation += (8 * 360) + (target - (currentWheelRotation % 360));
+            requestAnimationFrame(() => { setTimeout(() => { wheel.style.transform = `rotate(${currentWheelRotation}deg)`; }, 50); });
+            let ticks = 0; const tInt = setInterval(() => { AudioEngine.tick(); if (++ticks >= 28) clearInterval(tInt); }, 140);
+            setTimeout(() => {
+                resultText.innerText = sector.label; resultText.style.opacity = "1";
+                setTimeout(() => { modal.classList.remove("show"); handleSpinResult(sector); }, 1600);
+            }, 4200);
+        }
+
+        function handleSpinResult(sector) {
+            if (sector.type === "bankrupt") {
+                AudioEngine.bankrupt(); if (activeTeam === "A") scoreA = 0; else scoreB = 0; updateScoreDisplays();
+                showToast("PANKROT!", "danger"); setTimeout(switchTeam, 1500);
+            } else if (sector.type === "loseTurn") {
+                AudioEngine.wrong(); showToast("JÄÄD VAHELE", "danger"); setTimeout(switchTeam, 1500);
+            } else {
+                pendingAction = "consonant"; currentWheelValue = sector.type === "double" ? 500 : (sector.value || 0);
+                showToast(`PANUS: ${sector.label}. VALI KAASHÄÄLIK`); startTimer(15);
+            }
+            updateHighlights();
+        }
+
+        function switchTeam() {
+            if (finalMode) return;
+            pendingAction = "none"; currentWheelValue = null;
+            activeTeam = activeTeam === "A" ? "B" : "A";
+            document.getElementById("teamAContainer").classList.toggle("opacity-50", activeTeam !== "A");
+            document.getElementById("teamBContainer").classList.toggle("opacity-50", activeTeam !== "B");
+            document.getElementById("teamAContainer").classList.toggle("active-team", activeTeam === "A");
+            document.getElementById("teamBContainer").classList.toggle("active-team", activeTeam === "B");
+            const turnText = `Tiim ${activeTeam} kord`;
+            document.getElementById("turnInfo").innerText = turnText;
+            showToast(turnText, "info");
+            updateHighlights();
+        }
+
+        function updateScoreDisplays() { document.getElementById("scoreA").innerText = scoreA; document.getElementById("scoreB").innerText = scoreB; updateHighlights(); }
+        function changeScore(team, amount) { if (team === "A") scoreA = Math.max(0, scoreA + amount); else scoreB = Math.max(0, scoreB + amount); updateScoreDisplays(); }
+        function buyVowel() { if (roundLocked || pendingAction !== "none" || finalMode) return; const s = activeTeam === "A" ? scoreA : scoreB; if (s < 250) { showToast("Vaja on 250 punkti", "danger"); return; } changeScore(activeTeam, -250); pendingAction = "vowel"; showToast("TÄISHÄÄLIK: 250p. Vali täht"); startTimer(15); updateHighlights(); }
+        
+        function openGuessModal() { if (roundLocked) return; stopTimer(); document.getElementById("guessStep1").classList.remove("hidden"); document.getElementById("guessStep2").classList.add("hidden"); document.getElementById("guessModal").classList.add("show"); }
+        function revealAnswerInModal() { document.getElementById("guessStep1").classList.add("hidden"); document.getElementById("guessStep2").classList.remove("hidden"); document.getElementById("fullPhraseDisplay").innerText = currentPhrase; }
+        
+        function confirmAudienceGuess(isCorrect) {
+            document.getElementById("guessModal").classList.remove("show");
+            if (isCorrect) { [...currentPhrase].forEach(char => { if(/^[A-ZÕÄÖÜ]$/.test(char)) guessedLetters.add(char); }); renderPhrase(); handleWin(); }
+            else { 
+                AudioEngine.wrong(); 
+                stopTimer();
+                revealAll();
+                showBoardOverlay("VALE PAKKUMINE! MÄNG LÄBI!", "danger");
+            }
+        }
+
+        function handleGuess(letter) {
+            if (roundLocked || pendingAction === "none") return;
+            AudioEngine.resume(); if (guessedLetters.has(letter)) return;
+            const isV = "AEIOUÕÄÖÜ".includes(letter);
+            if (pendingAction === "finalPick") {
+                if (isV && finalVowelsLeft > 0) { guessedLetters.add(letter); finalVowelsLeft--; AudioEngine.correct(); }
+                else if (!isV && finalConsonantsLeft > 0) { guessedLetters.add(letter); finalConsonantsLeft--; AudioEngine.correct(); }
+                else return;
+                renderPhrase(); updateHighlights();
+                if (finalConsonantsLeft === 0 && finalVowelsLeft === 0) { pendingAction = "none"; showToast("AEG ARVATA! (30s)", "success", 3000); startTimer(30); updateHighlights(); }
+                return;
+            }
+            if ((isV && pendingAction !== "vowel") || (!isV && pendingAction !== "consonant")) return;
+            guessedLetters.add(letter); stopTimer();
+            let hits = 0; [...currentPhrase].forEach(ch => { if (ch === letter) hits++; });
+            const u = document.getElementById("usedLetters"), span = document.createElement("span");
+            span.innerText = letter;
+            if (hits > 0) {
+                AudioEngine.correct(); span.className = "text-blue-400 px-2 animate-bounce";
+                if (!isV) { const t = currentWheelValue * hits * (roundNumber === 2 ? 2 : 1); changeScore(activeTeam, t); showToast(`ÕIGE! ${hits}x (+${t})`, "success"); }
+                else showToast("ÕIGE!", "success");
+                renderPhrase(); pendingAction = "none"; if (isPhraseSolved()) handleWin();
+            } else { AudioEngine.wrong(); span.className = "text-slate-600 px-2"; showToast("VALE", "danger"); switchTeam(); }
+            u.appendChild(span);
+            updateHighlights();
+        }
+
+        function updateFinalPickDisplay() { 
+            const instr = document.getElementById("instructionInfo"); 
+            instr.innerText = `VALI VEEL: ${finalConsonantsLeft} KAASHÄÄLIKUT JA ${finalVowelsLeft} TÄISHÄÄLIK`; 
+            instr.classList.remove("hidden");
+        }
+        
+        function handleWin() { roundLocked = true; stopTimer(); AudioEngine.fanfare(); const b = finalMode ? 5000 : 1000; changeScore(activeTeam, b); createConfetti(finalMode ? 250 : 120); showBoardOverlay(finalMode ? "FINAALI VÕITJA!" : "LAUSE LAHENDATUD!", "success"); document.querySelectorAll('.letter-box.revealed').forEach((box, i) => { setTimeout(() => box.classList.add('winner-glow'), i * 40); }); updateHighlights(); }
+        function startRound(n) { roundNumber = n; finalMode = (n === 3); newGame(); if (finalMode) startFinalSetup(); }
+        function startFinalRound() { startRound(3); }
+        function startFinalSetup() { document.body.classList.add("finaal-bg"); const unique = [...new Set([...currentPhrase].filter(c => /^[A-ZÕÄÖÜ]$/.test(c)))]; const auto = unique.sort(() => 0.5 - Math.random()).slice(0, 3); autoRevealedFinal = new Set(auto); auto.forEach((l, i) => { setTimeout(() => { guessedLetters.add(l); AudioEngine.tick(); renderPhrase(); }, i * 500); }); finalConsonantsLeft = 3; finalVowelsLeft = 1; setTimeout(() => { pendingAction = "finalPick"; updateHighlights(); showToast("FINAAL: VALI TÄHED", "success", 3000); updateHighlights(); }, auto.length * 500 + 500); }
+        function startTimer(sec) { stopTimer(); timerSeconds = sec; const el = document.getElementById("timerDisplay"); updateTimerDisplay(); timerInterval = setInterval(() => { if (--timerSeconds <= 0) { stopTimer(); AudioEngine.wrong(); showToast("AEG SAI OTSA!", "danger"); revealAll(); if (!finalMode) switchTeam(); else showBoardOverlay("MÄNG LÄBI!", "danger"); } else { if (timerSeconds <= 10) el.classList.add("timer-warning"); AudioEngine.timerTick(timerSeconds <= 10); updateTimerDisplay(); } }, 1000); }
+        function stopTimer() { clearInterval(timerInterval); timerInterval = null; document.getElementById("timerDisplay").classList.remove("timer-warning"); }
+        function updateTimerDisplay() { document.getElementById("timerDisplay").innerText = `⏱ ${timerSeconds}`; }
+        function isPhraseSolved() { for(const ch of currentPhrase) if(/^[A-ZÕÄÖÜ]$/.test(ch) && !guessedLetters.has(ch)) return false; return true; }
+        function revealAll() { [...currentPhrase].forEach(char => { if (/^[A-ZÕÄÖÜ]$/.test(char)) guessedLetters.add(char); }); renderPhrase(); roundLocked = true; updateHighlights(); }
+        function renderPhrase() { const c = document.getElementById("phraseContainer"); c.innerHTML = ""; currentPhrase.split(" ").forEach(word => { const d = document.createElement("div"); d.className = "flex mx-4 mb-2"; [...word].forEach(char => { const box = document.createElement("div"); if (/^[A-ZÕÄÖÜ]$/.test(char)) { const isR = guessedLetters.has(char); box.className = `letter-box filled ${isR ? 'revealed' : ''} ${isR && autoRevealedFinal.has(char) && finalMode ? 'final-auto' : ''}`; box.innerText = isR ? char : ""; } else { box.className = "letter-box revealed border-none bg-transparent"; box.innerText = char; } d.appendChild(box); }); c.appendChild(d); }); }
+        
+        const gameData = [
+            { phrase: "Aeg parandab haavad aga jätab armid", category: "Vanasõna" },
+            { phrase: "Ametil on kuldpõhi all", category: "Vanasõna" },
+            { phrase: "Käbi ei kuku kännust kaugele", category: "Vanasõna" },
+            { phrase: "Hulk kokki teeb lahja leeme", category: "Vanasõna" },
+            { phrase: "Parem varblane peos kui tuvi katusel", category: "Vanasõna" },
+            { phrase: "Siin me oleme", category: "Eesti Film" },
+            { phrase: "Viimne reliikvia", category: "Eesti Film" },
+            { phrase: "Tallinn on Eesti pealinn", category: "Fakt" }
+        ];
+
+        function newGame() { 
+            const data = gameData[Math.floor(Math.random()*gameData.length)]; 
+            currentPhrase = data.phrase.toUpperCase(); 
+            guessedLetters.clear(); autoRevealedFinal.clear(); 
+            roundLocked = false; pendingAction = "none"; stopTimer(); 
+            if (!finalMode) document.body.classList.remove("finaal-bg"); 
+            document.getElementById("roundDisplay").innerText = finalMode ? "FINAAL" : (roundNumber === 2 ? "II VOOR" : "I VOOR"); 
+            document.getElementById("categoryDisplay").innerText = data.category; 
+            document.getElementById("usedLetters").innerHTML = ""; 
+            document.getElementById("timerDisplay").innerText = "⏱ 0"; 
+            document.getElementById("instructionInfo").classList.add("hidden"); 
+            document.getElementById("boardMsgText").classList.remove("show"); 
+            renderPhrase(); 
+            updateHighlights();
+        }
+
+        document.addEventListener("keydown", (e) => {
+            const key = e.key.toUpperCase();
+            if (key === "ENTER") { if (roundLocked) newGame(); else if (!finalMode && pendingAction === "none") spinWheel(); }
+            else if (/^[A-ZÕÄÖÜ]$/.test(key)) handleGuess(key);
+        });
 
         function createConfetti(count = 100) {
             for(let i=0; i<count; i++) {
@@ -294,335 +633,12 @@
                 conf.style.backgroundColor = ['#f59e0b','#10b981','#3b82f6','#ef4444','#f472b6','#facc15'][Math.floor(Math.random()*6)];
                 document.body.appendChild(conf);
                 const duration = 2.5 + Math.random() * 3.5;
-                conf.animate([
-                    { top: '-20px', opacity: 1, transform: 'rotate(0deg)' }, 
-                    { top: '105vh', opacity: 0, transform: `rotate(${Math.random()*1440}deg) translateX(${Math.random()*150-75}px)` }
-                ], { duration: duration * 1000, easing: 'cubic-bezier(0.1, 0, 0.3, 1)' });
+                conf.animate([{ top: '-20px', opacity: 1, transform: 'rotate(0deg)' }, { top: '105vh', opacity: 0, transform: `rotate(${Math.random()*1440}deg) translateX(${Math.random()*150-75}px)` }], { duration: duration * 1000 });
                 setTimeout(() => conf.remove(), duration * 1000);
             }
         }
 
-        const gameData = [
-            { phrase: "Aeg parandab haavad aga jätab armid", category: "Vanasõna" },
-            { phrase: "Ametil on kuldpõhi all", category: "Vanasõna" },
-            { phrase: "Käbi ei kuku kännust kaugele", category: "Vanasõna" },
-            { phrase: "Hulk kokki teeb lahja leeme", category: "Vanasõna" },
-            { phrase: "Parem varblane peos kui tuvi katusel", category: "Vanasõna" },
-            { phrase: "Siin me oleme", category: "Eesti Film" },
-            { phrase: "Viimne reliikvia", category: "Eesti Film" },
-            { phrase: "Tallinn on Eesti pealinn", category: "Fakt" },
-            { phrase: "Suvi on soe aeg", category: "Lause" }
-        ];
-
-        const LETTER_REGEX = /^[A-ZÕÄÖÜ]$/;
-        const VOWELS = new Set(["A","E","I","O","U","Õ","Ä","Ö","Ü"]);
-        const wheelSectors = [
-            { type: "points", value: 200, label: "200" },
-            { type: "points", value: 400, label: "400" },
-            { type: "points", value: 600, label: "600" },
-            { type: "loseTurn", label: "KAOTAD KORRA" },
-            { type: "points", value: 900, label: "900" },
-            { type: "bankrupt", label: "PANKROT" },
-            { type: "points", value: 1500, label: "1500" },
-            { type: "double", value: 500, label: "TOPELT x2" }
-        ];
-
-        let currentPhrase = "";
-        let guessedLetters = new Set();
-        let autoRevealedFinal = new Set();
-        let scoreA = 0, scoreB = 0;
-        let activeTeam = "A";
-        let roundNumber = 1, roundLocked = false;
-        let pendingAction = "none", currentWheelValue = null;
-        let timerSeconds = 0, timerInterval = null;
-        let finalMode = false;
-        let finalConsonantsLeft = 0;
-        let finalVowelsLeft = 0;
-        let isTimerActiveBeforeModal = false;
-
-        function updateScoreDisplays() {
-            document.getElementById("scoreA").innerText = scoreA;
-            document.getElementById("scoreB").innerText = scoreB;
-        }
-
-        function changeScore(team, amount) {
-            if (team === "A") scoreA = Math.max(0, scoreA + amount);
-            else scoreB = Math.max(0, scoreB + amount);
-            updateScoreDisplays();
-        }
-
-        function showOverlay(message, type = "info", ms = 1500) {
-            const wrap = document.getElementById("overlayMessage");
-            const badge = document.getElementById("overlayText");
-            badge.textContent = message;
-            if (finalMode && type === "success") badge.className = "overlay-badge bg-black border-yellow-500 text-gold scale-125";
-            else badge.className = "overlay-badge " + (type === "success" ? "bg-emerald-600 text-white border-emerald-400" : type === "danger" ? "bg-rose-600 text-white border-rose-400 animate-shake" : "bg-blue-600 text-white border-blue-400");
-            wrap.classList.add("show");
-            setTimeout(() => wrap.classList.remove("show"), ms);
-        }
-
-        function switchTeam() {
-            if (finalMode) return;
-            pendingAction = "none";
-            currentWheelValue = null;
-            document.getElementById("wheelDisplay").innerText = "—";
-            activeTeam = activeTeam === "A" ? "B" : "A";
-            document.getElementById("teamAContainer").classList.toggle("opacity-50", activeTeam !== "A");
-            document.getElementById("teamBContainer").classList.toggle("opacity-50", activeTeam !== "B");
-            document.getElementById("teamAContainer").classList.toggle("active-team", activeTeam === "A");
-            document.getElementById("teamBContainer").classList.toggle("active-team", activeTeam === "B");
-            document.getElementById("turnInfo").innerText = `Tiim ${activeTeam} kord`;
-            showOverlay(`Tiim ${activeTeam} kord`);
-        }
-
-        function spinWheel() {
-            if (roundLocked || finalMode) return;
-            if (pendingAction !== "none") { showOverlay("Vali kõigepealt täht!", "danger"); return; }
-            AudioEngine.resume();
-            const display = document.getElementById("wheelDisplay");
-            let spins = 0;
-            const interval = setInterval(() => {
-                const s = wheelSectors[Math.floor(Math.random() * wheelSectors.length)];
-                display.innerText = s.label;
-                AudioEngine.tick();
-                if (++spins >= 16) { clearInterval(interval); handleSpinResult(s); }
-            }, 70);
-        }
-
-        function handleSpinResult(sector) {
-            if (sector.type === "bankrupt") {
-                AudioEngine.bankrupt();
-                if (activeTeam === "A") scoreA = 0; else scoreB = 0;
-                updateScoreDisplays();
-                document.getElementById("gameBoard").classList.add("animate-shake");
-                setTimeout(() => document.getElementById("gameBoard").classList.remove("animate-shake"), 500);
-                showOverlay("PANKROT!", "danger");
-                setTimeout(switchTeam, 1500);
-            } else if (sector.type === "loseTurn") {
-                AudioEngine.wrong();
-                showOverlay("KAOTAD KORRA", "danger");
-                setTimeout(switchTeam, 1500);
-            } else {
-                pendingAction = "consonant";
-                currentWheelValue = sector.value;
-                showOverlay(`PANUS: ${sector.label}. Vali kaashäälik`);
-                startTimer(15);
-            }
-        }
-
-        function buyVowel() {
-            if (roundLocked || pendingAction !== "none" || finalMode) return;
-            const s = activeTeam === "A" ? scoreA : scoreB;
-            if (s < 250) { showOverlay("Vaja on 250 punkti", "danger"); return; }
-            changeScore(activeTeam, -250);
-            pendingAction = "vowel";
-            showOverlay("TÄISHÄÄLIK: 250p. Vali täht");
-            startTimer(15);
-        }
-
-        function openGuessModal() {
-            if (roundLocked) return;
-            isTimerActiveBeforeModal = (timerInterval !== null);
-            stopTimer(); 
-            document.getElementById("guessStep1").classList.remove("hidden");
-            document.getElementById("guessStep2").classList.add("hidden");
-            document.getElementById("guessModal").classList.add("show");
-        }
-
-        function revealAnswerInModal() {
-            document.getElementById("guessStep1").classList.add("hidden");
-            document.getElementById("guessStep2").classList.remove("hidden");
-            document.getElementById("fullPhraseDisplay").innerText = currentPhrase;
-        }
-
-        function confirmAudienceGuess(isCorrect) {
-            document.getElementById("guessModal").classList.remove("show");
-            if (isCorrect) {
-                // Avame kõik tähed
-                [...currentPhrase].forEach(char => {
-                     if(LETTER_REGEX.test(char)) guessedLetters.add(char);
-                });
-                renderPhrase();
-                handleWin();
-            } else {
-                AudioEngine.wrong();
-                if (finalMode) {
-                    stopTimer();
-                    revealAll(); // Paljastame vastuse, kuna mäng on läbi
-                    showOverlay("MÄNG LÄBI! VALE VASTUS", "danger", 5000);
-                } else {
-                    showOverlay("VALE VASTUS", "danger");
-                    switchTeam();
-                }
-            }
-        }
-
-        function handleGuess(letter) {
-            if (roundLocked || pendingAction === "none") return;
-            AudioEngine.resume();
-            if (guessedLetters.has(letter)) return;
-            const isVowel = VOWELS.has(letter);
-
-            if (pendingAction === "finalPick") {
-                if (isVowel && finalVowelsLeft > 0) { guessedLetters.add(letter); finalVowelsLeft--; AudioEngine.correct(); }
-                else if (!isVowel && finalConsonantsLeft > 0) { guessedLetters.add(letter); finalConsonantsLeft--; AudioEngine.correct(); }
-                else return;
-                renderPhrase();
-                updateFinalPickDisplay();
-                if (finalConsonantsLeft === 0 && finalVowelsLeft === 0) {
-                    pendingAction = "none";
-                    document.getElementById("instructionInfo").classList.add("hidden");
-                    showOverlay("AEG ARVATA! (30s)", "success", 2500);
-                    startTimer(30);
-                }
-                return;
-            }
-
-            if (isVowel && pendingAction !== "vowel") return;
-            if (!isVowel && pendingAction !== "consonant") return;
-
-            guessedLetters.add(letter);
-            stopTimer();
-            let hits = 0;
-            for (const ch of currentPhrase) if (ch === letter) hits++;
-            const usedEl = document.getElementById("usedLetters");
-            const span = document.createElement("span");
-            span.innerText = letter;
-
-            if (hits > 0) {
-                AudioEngine.correct();
-                span.className = "text-blue-400 px-2 animate-bounce";
-                if (!isVowel) {
-                    const total = currentWheelValue * hits * (roundNumber === 2 ? 2 : 1);
-                    changeScore(activeTeam, total);
-                    showOverlay(`ÕIGE! ${hits}x (+${total})`, "success");
-                } else showOverlay("ÕIGE!", "success");
-                renderPhrase();
-                pendingAction = "none";
-                document.getElementById("wheelDisplay").innerText = "—";
-                if (isPhraseSolved()) handleWin();
-            } else {
-                AudioEngine.wrong();
-                span.className = "text-slate-600 px-2";
-                showOverlay("VALE", "danger");
-                switchTeam();
-            }
-            usedEl.appendChild(span);
-        }
-
-        function updateFinalPickDisplay() {
-            const info = document.getElementById("instructionInfo");
-            info.innerText = `Vali veel: ${finalConsonantsLeft} K ja ${finalVowelsLeft} T`;
-            info.classList.remove("hidden");
-        }
-
-        function handleWin() {
-            roundLocked = true;
-            stopTimer();
-            AudioEngine.fanfare();
-            const bonus = finalMode ? 5000 : 1000;
-            changeScore(activeTeam, bonus);
-            createConfetti(finalMode ? 250 : 120);
-            showOverlay(finalMode ? "FINAALI VÕITJA!" : "LAUSE LAHENDATUD!", "success", 5000);
-            document.querySelectorAll('.letter-box.revealed').forEach((box, i) => {
-                setTimeout(() => box.classList.add('winner-glow'), i * 40);
-            });
-        }
-
-        function startRound(n) {
-            roundNumber = n; finalMode = (n === 3); newGame();
-            if (finalMode) startFinalSetup();
-        }
-
-        function startFinalRound() { startRound(3); }
-
-        function startFinalSetup() {
-            document.body.classList.add("finaal-bg");
-            const roundEl = document.getElementById("roundDisplay");
-            roundEl.className = "bg-amber-600 border-2 border-amber-400 text-white px-8 py-4 rounded-3xl font-black tracking-widest text-xl shadow-[0_0_30px_rgba(245,158,11,0.6)]";
-            const uniqueLetters = [...new Set([...currentPhrase].filter(c => LETTER_REGEX.test(c)))];
-            const shuffled = uniqueLetters.sort(() => 0.5 - Math.random());
-            const autoLetters = shuffled.slice(0, 3);
-            autoRevealedFinal = new Set(autoLetters);
-            autoLetters.forEach((l, i) => {
-                setTimeout(() => { guessedLetters.add(l); AudioEngine.tick(); renderPhrase(); }, i * 500);
-            });
-            finalConsonantsLeft = 3; finalVowelsLeft = 1;
-            setTimeout(() => { pendingAction = "finalPick"; updateFinalPickDisplay(); showOverlay("FINAAL: Vali tähed klaviatuuril", "success", 2500); }, autoLetters.length * 500 + 500);
-        }
-
-        function startTimer(sec) {
-            stopTimer(); timerSeconds = sec;
-            const el = document.getElementById("timerDisplay");
-            el.classList.remove("timer-warning");
-            updateTimerDisplay();
-            timerInterval = setInterval(() => {
-                if (--timerSeconds <= 0) { 
-                    stopTimer(); 
-                    AudioEngine.wrong(); 
-                    showOverlay("AEG LÄBI", "danger"); 
-                    revealAll(); 
-                    if (!finalMode) switchTeam(); 
-                    else showOverlay("FINAAL LÄBI! AEG SAI OTSA", "danger", 5000);
-                }
-                else { if (timerSeconds <= 10) el.classList.add("timer-warning"); AudioEngine.timerTick(timerSeconds <= 10); updateTimerDisplay(); }
-            }, 1000);
-        }
-
-        function stopTimer() { clearInterval(timerInterval); timerInterval = null; document.getElementById("timerDisplay").classList.remove("timer-warning"); }
-        function updateTimerDisplay() { document.getElementById("timerDisplay").innerText = `⏱ ${timerSeconds}`; }
-        function isPhraseSolved() { for(const ch of currentPhrase) if(LETTER_REGEX.test(ch) && !guessedLetters.has(ch)) return false; return true; }
-
-        function revealAll() {
-            [...currentPhrase].forEach(char => { if (LETTER_REGEX.test(char)) guessedLetters.add(char); });
-            renderPhrase(); roundLocked = true;
-        }
-
-        function renderPhrase() {
-            const container = document.getElementById("phraseContainer");
-            container.innerHTML = "";
-            currentPhrase.split(" ").forEach(word => {
-                const wordDiv = document.createElement("div");
-                wordDiv.className = "flex mx-4 mb-2";
-                [...word].forEach(char => {
-                    const box = document.createElement("div");
-                    if (LETTER_REGEX.test(char)) {
-                        const isRevealed = guessedLetters.has(char);
-                        const isAuto = isRevealed && autoRevealedFinal.has(char) && finalMode;
-                        box.className = `letter-box filled ${isRevealed ? 'revealed' : ''} ${isAuto ? 'final-auto' : ''}`;
-                        box.innerText = isRevealed ? char : "";
-                    } else { box.className = "letter-box revealed border-none bg-transparent"; box.innerText = char; }
-                    wordDiv.appendChild(box);
-                });
-                container.appendChild(wordDiv);
-            });
-        }
-
-        function newGame() {
-            const data = gameData[Math.floor(Math.random()*gameData.length)];
-            currentPhrase = data.phrase.toUpperCase();
-            guessedLetters.clear(); autoRevealedFinal.clear();
-            roundLocked = false; pendingAction = "none"; stopTimer();
-            if (!finalMode) {
-                document.body.classList.remove("finaal-bg");
-                document.getElementById("roundDisplay").className = "bg-slate-800 border-2 border-slate-700 text-slate-100 px-8 py-4 rounded-3xl font-black tracking-widest text-xl shadow-2xl";
-            }
-            document.getElementById("roundDisplay").innerText = finalMode ? "FINAAL" : (roundNumber === 2 ? "II VOOR" : "I VOOR");
-            document.getElementById("categoryDisplay").innerText = data.category;
-            document.getElementById("usedLetters").innerHTML = "";
-            document.getElementById("wheelDisplay").innerText = "—";
-            document.getElementById("timerDisplay").innerText = "⏱ 0";
-            document.getElementById("instructionInfo").classList.add("hidden");
-            renderPhrase();
-        }
-
-        document.addEventListener("keydown", (e) => {
-            const key = e.key.toUpperCase();
-            if (key === "ENTER") { if (roundLocked) newGame(); else if (!finalMode && pendingAction === "none") spinWheel(); }
-            else if (LETTER_REGEX.test(key)) handleGuess(key);
-        });
-
-        window.onload = newGame;
+        window.onload = () => { generateWheel(); newGame(); };
     </script>
 </body>
 </html>

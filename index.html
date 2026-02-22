@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lausete Äraarvamise Mäng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow: hidden;
+        }
+
+        .letter-box {
+            width: 3.5rem;
+            height: 4.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: 900;
+            border-bottom: 4px solid #334155;
+            margin: 0.25rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .letter-box.filled {
+            border: 2px solid #3b82f6;
+            background: #1e293b;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        .letter-box.revealed {
+            background: #3b82f6;
+            border-color: #60a5fa;
+            color: white;
+            transform: rotateY(360deg);
+        }
+
+        /* Tagab, et pikad laused ei hüppaks ekraanilt välja */
+        #phraseContainer {
+            perspective: 1000px;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col p-6 overflow-hidden">
+
+    <!-- Päis: Punktid ja Info -->
+    <div class="flex justify-between items-start mb-4">
+        <!-- Tiim A -->
+        <div id="teamAContainer" class="bg-blue-600 p-4 rounded-xl border-4 border-blue-400 text-center min-w-[160px] shadow-2xl transition-all duration-500">
+            <h2 class="text-xl font-bold uppercase tracking-tight">Tiim A</h2>
+            <div id="scoreA" class="text-5xl font-black">0</div>
+            <div class="mt-2 flex justify-center gap-2">
+                <button onclick="changeScore('A', -1)" class="bg-blue-800 hover:bg-blue-900 px-4 py-1 rounded shadow-inner">-</button>
+                <button onclick="changeScore('A', 1)" class="bg-blue-300 hover:bg-blue-200 text-blue-900 px-4 py-1 rounded font-bold shadow-md">+</button>
+            </div>
+        </div>
+
+        <!-- Kategooria ja vihje -->
+        <div class="text-center flex-1 px-4 mt-2">
+            <div id="categoryDisplay" class="text-2xl font-bold text-blue-400 uppercase tracking-[0.3em] mb-1">KATEGOORIA</div>
+            <div id="hintDisplay" class="text-xl text-slate-400 italic">Vajuta "UUS LAUSE" alustamiseks</div>
+        </div>
+
+        <!-- Tiim B -->
+        <div id="teamBContainer" class="bg-rose-600 p-4 rounded-xl border-4 border-rose-400 text-center min-w-[160px] shadow-2xl transition-all duration-500 opacity-50">
+            <h2 class="text-xl font-bold uppercase tracking-tight">Tiim B</h2>
+            <div id="scoreB" class="text-5xl font-black">0</div>
+            <div class="mt-2 flex justify-center gap-2">
+                <button onclick="changeScore('B', -1)" class="bg-rose-800 hover:bg-rose-900 px-4 py-1 rounded shadow-inner">-</button>
+                <button onclick="changeScore('B', 1)" class="bg-rose-300 hover:bg-rose-200 text-rose-900 px-4 py-1 rounded font-bold shadow-md">+</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mänguväli (Keskel) -->
+    <div class="flex-grow flex items-center justify-center py-10">
+        <div id="phraseContainer" class="flex flex-wrap justify-center items-center max-w-7xl gap-y-12">
+            <!-- Tähed genereeritakse siia -->
+        </div>
+    </div>
+
+    <!-- Pakutud tähed -->
+    <div class="mb-6 text-center">
+        <div class="text-xs uppercase tracking-[0.5em] text-slate-500 mb-3 font-bold">Pakutud tähed</div>
+        <div id="usedLetters" class="text-3xl font-bold tracking-[0.4em] min-h-[3rem] flex justify-center items-center flex-wrap gap-2"></div>
+    </div>
+
+    <!-- Alumine paneel -->
+    <div class="mt-auto flex justify-between items-center bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+        <div class="flex gap-4">
+            <button onclick="newGame()" class="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black py-3 px-10 rounded-xl text-xl shadow-lg transition-transform active:scale-95">UUS LAUSE</button>
+            <button onclick="revealAll()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 py-3 px-6 rounded-xl text-lg font-bold">NÄITA VASTUST</button>
+        </div>
+        
+        <div class="flex gap-10 items-center">
+            <div class="text-slate-400 text-sm font-medium leading-tight">
+                <span class="text-blue-400 font-bold">TÄHED:</span> Paku tähte<br>
+                <span class="text-blue-400 font-bold">TAB:</span> Vaheta tiimi
+            </div>
+            <div class="text-slate-400 text-sm font-medium leading-tight text-right">
+                <span class="text-blue-400 font-bold">ENTER:</span> Järgmine lause<br>
+                <span class="text-blue-400 font-bold">TÜHIK:</span> Peida/Näita nuppe
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const gameData = [
+            { phrase: "Kus viga näed laita seal tule ja aita", category: "Vanasõna", hint: "Abivalmiduse kohta" },
+            { phrase: "Eestlane on tantsurahvas", category: "Ütlus", hint: "Meie kultuuri kohta" },
+            { phrase: "Must lagi on meie toal", category: "Luule", hint: "Juhan Liiv" },
+            { phrase: "Tallinn on Eesti pealinn", category: "Fakt", hint: "Geograafia" },
+            { phrase: "Kevad on käes ja lilled õitsevad", category: "Loodus", hint: "Aastaajad" },
+            { phrase: "Söö alla ja joo peale", category: "Vanasõna", hint: "Toidukultuur" },
+            { phrase: "Haridus on valguse tee", category: "Ütlus", hint: "Tarkusest" },
+            { phrase: "Rikas mees mängib ja vaene mees tantsib", category: "Vanasõna", hint: "Varandusest" }
+        ];
+
+        let currentPhrase = "";
+        let guessedLetters = new Set();
+        let scoreA = 0;
+        let scoreB = 0;
+        let activeTeam = 'A';
+
+        function changeScore(team, amount) {
+            if (team === 'A') {
+                scoreA = Math.max(0, scoreA + amount);
+                document.getElementById('scoreA').innerText = scoreA;
+            } else {
+                scoreB = Math.max(0, scoreB + amount);
+                document.getElementById('scoreB').innerText = scoreB;
+            }
+        }
+
+        function switchTeam() {
+            activeTeam = activeTeam === 'A' ? 'B' : 'A';
+            document.getElementById('teamAContainer').classList.toggle('opacity-50', activeTeam !== 'A');
+            document.getElementById('teamBContainer').classList.toggle('opacity-50', activeTeam !== 'B');
+        }
+
+        function newGame() {
+            const data = gameData[Math.floor(Math.random() * gameData.length)];
+            currentPhrase = data.phrase.toUpperCase();
+            guessedLetters.clear();
+            
+            document.getElementById('categoryDisplay').innerText = data.category;
+            document.getElementById('hintDisplay').innerText = data.hint;
+            document.getElementById('usedLetters').innerHTML = "";
+            
+            renderPhrase();
+        }
+
+        function renderPhrase() {
+            const container = document.getElementById('phraseContainer');
+            container.innerHTML = "";
+            
+            const words = currentPhrase.split(" ");
+            
+            words.forEach(word => {
+                const wordDiv = document.createElement('div');
+                wordDiv.className = "flex mx-4 mb-2"; // mx-4 annab sõnade vahele hingamisruumi
+                
+                [...word].forEach(char => {
+                    const box = document.createElement('div');
+                    const isLetter = /[A-ZÕÄÖÜ]/.test(char);
+                    
+                    if (isLetter) {
+                        box.className = "letter-box filled";
+                        if (guessedLetters.has(char)) {
+                            box.innerText = char;
+                            box.classList.add('revealed');
+                        }
+                    } else {
+                        box.className = "letter-box revealed"; 
+                        box.innerText = char;
+                        box.style.borderBottom = "none";
+                        box.style.background = "transparent";
+                    }
+                    wordDiv.appendChild(box);
+                });
+                
+                container.appendChild(wordDiv);
+            });
+        }
+
+        function handleGuess(letter) {
+            if (!currentPhrase || guessedLetters.has(letter)) return;
+            
+            guessedLetters.add(letter);
+            
+            const usedEl = document.getElementById('usedLetters');
+            const span = document.createElement('span');
+            span.innerText = letter;
+            span.className = currentPhrase.includes(letter) 
+                ? "text-blue-400 px-2 animate-bounce" 
+                : "text-slate-600 px-2";
+            usedEl.appendChild(span);
+
+            renderPhrase();
+        }
+
+        function revealAll() {
+            [...currentPhrase].forEach(char => {
+                if (/[A-ZÕÄÖÜ]/.test(char)) guessedLetters.add(char);
+            });
+            renderPhrase();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            const key = e.key.toUpperCase();
+            
+            if (key === 'ENTER') {
+                newGame();
+            } else if (key === 'TAB') {
+                e.preventDefault();
+                switchTeam();
+            } else if (/^[A-ZÕÄÖÜ]$/.test(key)) {
+                handleGuess(key);
+            }
+        });
+
+        // Käivitame esimese mängu
+        window.onload = newGame;
+    </script>
+</body>
+</html>

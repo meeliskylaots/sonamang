@@ -42,6 +42,13 @@
             transform: rotateY(360deg);
         }
 
+        .active-team {
+            transform: scale(1.05);
+            ring: 4px;
+            ring-color: white;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+
         #phraseContainer {
             perspective: 1000px;
         }
@@ -56,15 +63,15 @@
             <h2 class="text-xl font-bold uppercase tracking-tight">Tiim A</h2>
             <div id="scoreA" class="text-5xl font-black">0</div>
             <div class="mt-2 flex justify-center gap-2">
-                <button onclick="changeScore('A', -1)" class="bg-blue-800 hover:bg-blue-900 px-4 py-1 rounded shadow-inner">-</button>
-                <button onclick="changeScore('A', 1)" class="bg-blue-300 hover:bg-blue-200 text-blue-900 px-4 py-1 rounded font-bold shadow-md">+</button>
+                <button onclick="changeScore('A', -10)" class="bg-blue-800 hover:bg-blue-900 px-4 py-1 rounded shadow-inner">-10</button>
+                <button onclick="changeScore('A', 10)" class="bg-blue-300 hover:bg-blue-200 text-blue-900 px-4 py-1 rounded font-bold shadow-md">+10</button>
             </div>
         </div>
 
-        <!-- Kategooria ja vihje -->
-        <div class="text-center flex-1 px-4 mt-2">
+        <!-- Kategooria ja Teavitused -->
+        <div class="text-center flex-1 px-4 mt-6">
             <div id="categoryDisplay" class="text-2xl font-bold text-blue-400 uppercase tracking-[0.3em] mb-1">KATEGOORIA</div>
-            <div id="hintDisplay" class="text-xl text-slate-400 italic">Vajuta "UUS LAUSE" alustamiseks</div>
+            <div id="turnInfo" class="text-emerald-400 font-bold uppercase tracking-widest animate-pulse">Tiim A kord</div>
         </div>
 
         <!-- Tiim B -->
@@ -72,8 +79,8 @@
             <h2 class="text-xl font-bold uppercase tracking-tight">Tiim B</h2>
             <div id="scoreB" class="text-5xl font-black">0</div>
             <div class="mt-2 flex justify-center gap-2">
-                <button onclick="changeScore('B', -1)" class="bg-rose-800 hover:bg-rose-900 px-4 py-1 rounded shadow-inner">-</button>
-                <button onclick="changeScore('B', 1)" class="bg-rose-300 hover:bg-rose-200 text-rose-900 px-4 py-1 rounded font-bold shadow-md">+</button>
+                <button onclick="changeScore('B', -10)" class="bg-rose-800 hover:bg-rose-900 px-4 py-1 rounded shadow-inner">-10</button>
+                <button onclick="changeScore('B', 10)" class="bg-rose-300 hover:bg-rose-200 text-rose-900 px-4 py-1 rounded font-bold shadow-md">+10</button>
             </div>
         </div>
     </div>
@@ -99,7 +106,7 @@
         <div class="flex gap-10 items-center">
             <div class="text-slate-400 text-sm font-medium leading-tight">
                 <span class="text-blue-400 font-bold">TÄHED:</span> Paku tähte<br>
-                <span class="text-blue-400 font-bold">TAB:</span> Vaheta tiimi
+                <span class="text-blue-400 font-bold">TAB:</span> Vaheta tiimi manuaalselt
             </div>
             <div class="text-slate-400 text-sm font-medium leading-tight text-right">
                 <span class="text-blue-400 font-bold">ENTER:</span> Järgmine lause<br>
@@ -110,26 +117,26 @@
 
     <script>
         const gameData = [
-            { phrase: "Aeg parandab haavad aga jätab armid", category: "Vanasõna", hint: "Aja kulgemisest" },
-            { phrase: "Ahnus ajab auku", category: "Vanasõna", hint: "Liigsest soovist saada rohkem" },
-            { phrase: "Ametil on kuldpõhi all", category: "Vanasõna", hint: "Oskuste väärtusest" },
-            { phrase: "Ega magajale kassile hiir suhu jookse", category: "Vanasõna", hint: "Tulemuste saavutamiseks peab vaeva nägema" },
-            { phrase: "Enne mõtle pärast ütle", category: "Vanasõna", hint: "Ettevaatlikkusest rääkimisel" },
-            { phrase: "Esimene vasikas läheb ikka aia taha", category: "Vanasõna", hint: "Ebaõnnestunud esimestest katsetest" },
-            { phrase: "Hulk kokki teeb lahja leeme", category: "Vanasõna", hint: "Kui liiga palju inimesi otsustab" },
-            { phrase: "Hundid söönud lambad terved", category: "Vanasõna", hint: "Kõiki osapooli rahuldav lahendus" },
-            { phrase: "Häda ajab härja kaevu", category: "Vanasõna", hint: "Sundolukordade mõjust" },
-            { phrase: "Iga algus on raske", category: "Vanasõna", hint: "Uute asjade ettevõtmisest" },
-            { phrase: "Kus viga näed laita seal tule ja aita", category: "Vanasõna", hint: "Abivalmidusest" },
-            { phrase: "Käbi ei kuku kännust kaugele", category: "Vanasõna", hint: "Laste sarnasusest vanematega" },
-            { phrase: "Töö kardab meistrit", category: "Vanasõna", hint: "Oskaja käes läheb töö kiiresti" },
-            { phrase: "Töö kiidab tegijat", category: "Vanasõna", hint: "Hea tulemus räägib enda eest" },
-            { phrase: "Uus luud pühib toa puhtaks", category: "Vanasõna", hint: "Uutest algustest ja reformidest" },
-            { phrase: "Vaga vesi sügav põhi", category: "Vanasõna", hint: "Vaiksete inimeste peidetud omadustest" },
-            { phrase: "Veerevale kivile ei kasva sammalt", category: "Vanasõna", hint: "Liikumine hoiab vaimu värskena" },
-            { phrase: "Hooletus ees õnnetus taga", category: "Vanasõna", hint: "Tähelepanematuse tagajärgedest" },
-            { phrase: "Parem varblane peos kui tuvi katusel", category: "Vanasõna", hint: "Kindla asja eelistamisest ebakindlale" },
-            { phrase: "Mida Juku ei õpi seda Juhan ei tea", category: "Vanasõna", hint: "Noorelt õppimise tähtsusest" }
+            { phrase: "Aeg parandab haavad aga jätab armid", category: "Vanasõna" },
+            { phrase: "Ahnus ajab auku", category: "Vanasõna" },
+            { phrase: "Ametil on kuldpõhi all", category: "Vanasõna" },
+            { phrase: "Ega magajale kassile hiir suhu jookse", category: "Vanasõna" },
+            { phrase: "Enne mõtle pärast ütle", category: "Vanasõna" },
+            { phrase: "Esimene vasikas läheb ikka aia taha", category: "Vanasõna" },
+            { phrase: "Hulk kokki teeb lahja leeme", category: "Vanasõna" },
+            { phrase: "Hundid söönud lambad terved", category: "Vanasõna" },
+            { phrase: "Häda ajab härja kaevu", category: "Vanasõna" },
+            { phrase: "Iga algus on raske", category: "Vanasõna" },
+            { phrase: "Kus viga näed laita seal tule ja aita", category: "Vanasõna" },
+            { phrase: "Käbi ei kuku kännust kaugele", category: "Vanasõna" },
+            { phrase: "Töö kardab meistrit", category: "Vanasõna" },
+            { phrase: "Töö kiidab tegijat", category: "Vanasõna" },
+            { phrase: "Uus luud pühib toa puhtaks", category: "Vanasõna" },
+            { phrase: "Vaga vesi sügav põhi", category: "Vanasõna" },
+            { phrase: "Veerevale kivile ei kasva sammalt", category: "Vanasõna" },
+            { phrase: "Hooletus ees õnnetus taga", category: "Vanasõna" },
+            { phrase: "Parem varblane peos kui tuvi katusel", category: "Vanasõna" },
+            { phrase: "Mida Juku ei õpi seda Juhan ei tea", category: "Vanasõna" }
         ];
 
         let currentPhrase = "";
@@ -138,20 +145,28 @@
         let scoreB = 0;
         let activeTeam = 'A';
 
+        function updateScoreDisplays() {
+            document.getElementById('scoreA').innerText = scoreA;
+            document.getElementById('scoreB').innerText = scoreB;
+        }
+
         function changeScore(team, amount) {
             if (team === 'A') {
                 scoreA = Math.max(0, scoreA + amount);
-                document.getElementById('scoreA').innerText = scoreA;
             } else {
                 scoreB = Math.max(0, scoreB + amount);
-                document.getElementById('scoreB').innerText = scoreB;
             }
+            updateScoreDisplays();
         }
 
         function switchTeam() {
             activeTeam = activeTeam === 'A' ? 'B' : 'A';
             document.getElementById('teamAContainer').classList.toggle('opacity-50', activeTeam !== 'A');
             document.getElementById('teamBContainer').classList.toggle('opacity-50', activeTeam !== 'B');
+            
+            const turnInfo = document.getElementById('turnInfo');
+            turnInfo.innerText = `Tiim ${activeTeam} kord`;
+            turnInfo.className = activeTeam === 'A' ? 'text-blue-400 font-bold uppercase tracking-widest animate-pulse' : 'text-rose-400 font-bold uppercase tracking-widest animate-pulse';
         }
 
         function newGame() {
@@ -160,7 +175,6 @@
             guessedLetters.clear();
             
             document.getElementById('categoryDisplay').innerText = data.category;
-            document.getElementById('hintDisplay').innerText = data.hint;
             document.getElementById('usedLetters').innerHTML = "";
             
             renderPhrase();
@@ -187,7 +201,6 @@
                             box.classList.add('revealed');
                         }
                     } else {
-                        // Punktid, komad jm märgid näidatakse kohe
                         box.className = "letter-box revealed"; 
                         box.innerText = char;
                         box.style.borderBottom = "none";
@@ -209,13 +222,23 @@
             const span = document.createElement('span');
             span.innerText = letter;
             
-            if (currentPhrase.includes(letter)) {
-                span.className = "text-blue-400 px-2 animate-bounce";
-            } else {
-                span.className = "text-slate-600 px-2";
-            }
-            usedEl.appendChild(span);
+            const letterCount = currentPhrase.split(letter).length - 1;
 
+            if (letterCount > 0) {
+                // Õige pakkumine: lisa punkte aktiivsele tiimile
+                const pointsToAdd = letterCount * 10;
+                if (activeTeam === 'A') scoreA += pointsToAdd;
+                else scoreB += pointsToAdd;
+                
+                span.className = "text-blue-400 px-2 animate-bounce";
+                updateScoreDisplays();
+            } else {
+                // Vale pakkumine: vaheta tiimi
+                span.className = "text-slate-600 px-2";
+                switchTeam();
+            }
+            
+            usedEl.appendChild(span);
             renderPhrase();
         }
 
@@ -235,7 +258,6 @@
                 e.preventDefault();
                 switchTeam();
             } else if (key === ' ') {
-                // Tühik paneb fookuse "Uus lause" nupule
                 document.getElementById('newGameBtn').focus();
             } else if (/^[A-ZÕÄÖÜ]$/.test(key)) {
                 handleGuess(key);

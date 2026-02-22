@@ -42,6 +42,11 @@
             transform: rotateY(360deg) scale(1.1);
         }
 
+        .letter-box.word-win {
+            background: #10b981 !important;
+            border-color: #34d399 !important;
+        }
+
         .win-animation {
             animation: bounce 0.5s infinite alternate;
         }
@@ -75,10 +80,13 @@
 
     <!-- Võidu teavitusaken -->
     <div id="winOverlay" class="flex flex-col text-center">
-        <h1 class="text-7xl font-black text-emerald-400 mb-4 animate-bounce">ÕIGE VASTUS!</h1>
+        <h1 id="winStatus" class="text-7xl font-black text-emerald-400 mb-4 animate-bounce">SÕNA ÕIGE!</h1>
         <p id="winPhraseDisplay" class="text-3xl text-white mb-4 italic px-10"></p>
         <p id="winPointsDisplay" class="text-2xl text-emerald-300 mb-8 font-bold"></p>
-        <button onclick="newGame()" class="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black py-4 px-12 rounded-2xl text-2xl shadow-2xl transition-transform active:scale-95">JÄRGMINE LAUSE (Enter)</button>
+        <div class="flex gap-4">
+            <button id="overlayContinueBtn" onclick="hideWinOverlay()" class="bg-blue-500 hover:bg-blue-400 text-white font-black py-4 px-12 rounded-2xl text-2xl shadow-2xl transition-transform active:scale-95">JÄTKA SAMAGA</button>
+            <button id="overlayNextBtn" onclick="newGame()" class="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black py-4 px-12 rounded-2xl text-2xl shadow-2xl transition-transform active:scale-95">JÄRGMINE LAUSE (Enter)</button>
+        </div>
     </div>
 
     <!-- Päis: Punktid ja Info -->
@@ -167,6 +175,7 @@
         let availablePhrases = [...gameData];
         let currentPhrase = "";
         let guessedLetters = new Set();
+        let completedWordIndexes = new Set();
         let scoreA = 0;
         let scoreB = 0;
         let activeTeam = 'A';
@@ -191,6 +200,10 @@
         const sounds = {
             correct: () => playSound(880, 'sine', 0.2),
             wrong: () => playSound(220, 'sawtooth', 0.3, 0.05),
+            wordWin: () => {
+                const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+                notes.forEach((f, i) => setTimeout(() => playSound(f, 'sine', 0.3, 0.05), i * 100));
+            },
             win: () => {
                 const notes = [440, 554, 659, 880];
                 notes.forEach((f, i) => setTimeout(() => playSound(f, 'square', 0.5, 0.05), i * 150));
@@ -220,7 +233,6 @@
         }
 
         function newGame() {
-            // Kui kõik on läbi mängitud, täidame nimekirja uuesti
             if (availablePhrases.length === 0) {
                 availablePhrases = [...gameData];
             }
@@ -230,6 +242,7 @@
             
             currentPhrase = data.phrase.toUpperCase();
             guessedLetters.clear();
+            completedWordIndexes.clear();
             isGameWon = false;
             
             document.getElementById('categoryDisplay').innerText = data.category;
@@ -245,12 +258,29 @@
             container.innerHTML = "";
             
             const words = currentPhrase.split(" ");
-            let allRevealed = true;
-            
-            words.forEach(word => {
+            let newlyCompletedWord = null;
+            let allPhraseComplete = true;
+
+            words.forEach((word, wordIdx) => {
                 const wordDiv = document.createElement('div');
-                wordDiv.className = "flex mx-4 mb-2"; 
+                wordDiv.className = "flex mx-4 mb-2 word-group";
+                wordDiv.dataset.index = wordIdx;
                 
+                let isWordComplete = true;
+                [...word].forEach(char => {
+                    const isLetter = /[A-ZÕÄÖÜ]/.test(char);
+                    if (isLetter && !guessedLetters.has(char)) {
+                        isWordComplete = false;
+                        allPhraseComplete = false;
+                    }
+                });
+
+                // Kui sõna sai just valmis
+                if (isWordComplete && !completedWordIndexes.has(wordIdx)) {
+                    newlyCompletedWord = word;
+                    completedWordIndexes.add(wordIdx);
+                }
+
                 [...word].forEach(char => {
                     const box = document.createElement('div');
                     const isLetter = /[A-ZÕÄÖÜ]/.test(char);
@@ -260,8 +290,7 @@
                         if (guessedLetters.has(char)) {
                             box.innerText = char;
                             box.classList.add('revealed');
-                        } else {
-                            allRevealed = false;
+                            if (isWordComplete) box.classList.add('word-win');
                         }
                     } else {
                         box.className = "letter-box revealed"; 
@@ -275,8 +304,10 @@
                 container.appendChild(wordDiv);
             });
 
-            if (allRevealed && !isGameWon && currentPhrase.length > 0) {
-                handleWin();
+            if (newlyCompletedWord && !allPhraseComplete) {
+                handleWordWin(newlyCompletedWord, false);
+            } else if (allPhraseComplete && !isGameWon && currentPhrase.length > 0) {
+                handleWordWin(words[words.length-1], true);
             }
         }
 
@@ -309,27 +340,36 @@
             renderPhrase();
         }
 
-        function handleWin() {
-            isGameWon = true;
-            sounds.win();
-            
-            // Võiduefekt kastidele
-            document.querySelectorAll('.letter-box.revealed').forEach((el, i) => {
-                if (el.innerText !== " ") {
-                    setTimeout(() => {
-                        el.classList.add('win-animation');
-                        el.style.backgroundColor = '#10b981';
-                        el.style.borderColor = '#34d399';
-                    }, i * 30);
-                }
-            });
+        function handleWordWin(word, isLastWord) {
+            if (isLastWord) {
+                isGameWon = true;
+                sounds.win();
+                document.getElementById('winStatus').innerText = "LAUSE VALMIS!";
+                document.getElementById('winStatus').className = "text-7xl font-black text-emerald-400 mb-4 animate-bounce";
+                document.getElementById('overlayContinueBtn').style.display = "none";
+                document.getElementById('overlayNextBtn').innerText = "JÄRGMINE LAUSE (Enter)";
+                
+                // Võiduefekt kõigile
+                document.querySelectorAll('.letter-box.revealed').forEach((el, i) => {
+                    setTimeout(() => el.classList.add('win-animation'), i * 30);
+                });
+            } else {
+                sounds.wordWin();
+                document.getElementById('winStatus').innerText = "SÕNA ÕIGE!";
+                document.getElementById('winStatus').className = "text-7xl font-black text-blue-400 mb-4 animate-bounce";
+                document.getElementById('overlayContinueBtn').style.display = "block";
+                document.getElementById('overlayNextBtn').innerText = "UUS LAUSE";
+            }
 
-            // Kuva võiduteavitus
             setTimeout(() => {
-                document.getElementById('winPhraseDisplay').innerText = currentPhrase;
-                document.getElementById('winPointsDisplay').innerText = `Tiim ${activeTeam} võitis selle vooru!`;
+                document.getElementById('winPhraseDisplay').innerText = isLastWord ? currentPhrase : `Sõna: ${word}`;
+                document.getElementById('winPointsDisplay').innerText = `Tiim ${activeTeam} on tubli!`;
                 document.getElementById('winOverlay').style.display = 'flex';
-            }, 1200);
+            }, 800);
+        }
+
+        function hideWinOverlay() {
+            document.getElementById('winOverlay').style.display = 'none';
         }
 
         function revealAll() {
@@ -340,13 +380,17 @@
         }
 
         document.addEventListener('keydown', (e) => {
-            // Aktiveeri AudioContext esimesel vajutusel (brauseri piirang)
             if (audioCtx.state === 'suspended') audioCtx.resume();
 
             const key = e.key.toUpperCase();
             
             if (key === 'ENTER') {
-                newGame();
+                if (document.getElementById('winOverlay').style.display === 'flex') {
+                    if (isGameWon) newGame();
+                    else hideWinOverlay();
+                } else {
+                    newGame();
+                }
             } else if (key === 'TAB') {
                 e.preventDefault();
                 switchTeam();

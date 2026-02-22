@@ -25,7 +25,7 @@
             font-weight: 900;
             border-bottom: 4px solid #334155;
             margin: 0.25rem;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         .letter-box.filled {
@@ -39,22 +39,47 @@
             background: #3b82f6;
             border-color: #60a5fa;
             color: white;
-            transform: rotateY(360deg);
+            transform: rotateY(360deg) scale(1.1);
         }
 
-        .active-team {
-            transform: scale(1.05);
-            ring: 4px;
-            ring-color: white;
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        .win-animation {
+            animation: bounce 0.5s infinite alternate;
+        }
+
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-10px); }
         }
 
         #phraseContainer {
             perspective: 1000px;
         }
+
+        /* Võidu overlay stiilid */
+        #winOverlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.9);
+            z-index: 50;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col p-6 overflow-hidden">
+
+    <!-- Võidu teavitusaken -->
+    <div id="winOverlay" class="flex flex-col text-center">
+        <h1 class="text-7xl font-black text-emerald-400 mb-4 animate-bounce">ÕIGE VASTUS!</h1>
+        <p id="winPhraseDisplay" class="text-3xl text-white mb-4 italic px-10"></p>
+        <p id="winPointsDisplay" class="text-2xl text-emerald-300 mb-8 font-bold"></p>
+        <button onclick="newGame()" class="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black py-4 px-12 rounded-2xl text-2xl shadow-2xl transition-transform active:scale-95">JÄRGMINE LAUSE (Enter)</button>
+    </div>
 
     <!-- Päis: Punktid ja Info -->
     <div class="flex justify-between items-start mb-4">
@@ -106,7 +131,7 @@
         <div class="flex gap-10 items-center">
             <div class="text-slate-400 text-sm font-medium leading-tight">
                 <span class="text-blue-400 font-bold">TÄHED:</span> Paku tähte<br>
-                <span class="text-blue-400 font-bold">TAB:</span> Vaheta tiimi manuaalselt
+                <span class="text-blue-400 font-bold">TAB:</span> Vaheta tiimi
             </div>
             <div class="text-slate-400 text-sm font-medium leading-tight text-right">
                 <span class="text-blue-400 font-bold">ENTER:</span> Järgmine lause<br>
@@ -139,11 +164,39 @@
             { phrase: "Mida Juku ei õpi seda Juhan ei tea", category: "Vanasõna" }
         ];
 
+        let availablePhrases = [...gameData];
         let currentPhrase = "";
         let guessedLetters = new Set();
         let scoreA = 0;
         let scoreB = 0;
         let activeTeam = 'A';
+        let isGameWon = false;
+
+        // Heliefektide süsteem
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(freq, type, duration, vol = 0.1) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        const sounds = {
+            correct: () => playSound(880, 'sine', 0.2),
+            wrong: () => playSound(220, 'sawtooth', 0.3, 0.05),
+            win: () => {
+                const notes = [440, 554, 659, 880];
+                notes.forEach((f, i) => setTimeout(() => playSound(f, 'square', 0.5, 0.05), i * 150));
+            },
+            new: () => playSound(660, 'sine', 0.15)
+        };
 
         function updateScoreDisplays() {
             document.getElementById('scoreA').innerText = scoreA;
@@ -151,11 +204,8 @@
         }
 
         function changeScore(team, amount) {
-            if (team === 'A') {
-                scoreA = Math.max(0, scoreA + amount);
-            } else {
-                scoreB = Math.max(0, scoreB + amount);
-            }
+            if (team === 'A') scoreA = Math.max(0, scoreA + amount);
+            else scoreB = Math.max(0, scoreB + amount);
             updateScoreDisplays();
         }
 
@@ -170,13 +220,23 @@
         }
 
         function newGame() {
-            const data = gameData[Math.floor(Math.random() * gameData.length)];
+            // Kui kõik on läbi mängitud, täidame nimekirja uuesti
+            if (availablePhrases.length === 0) {
+                availablePhrases = [...gameData];
+            }
+
+            const randomIndex = Math.floor(Math.random() * availablePhrases.length);
+            const data = availablePhrases.splice(randomIndex, 1)[0];
+            
             currentPhrase = data.phrase.toUpperCase();
             guessedLetters.clear();
+            isGameWon = false;
             
             document.getElementById('categoryDisplay').innerText = data.category;
             document.getElementById('usedLetters').innerHTML = "";
+            document.getElementById('winOverlay').style.display = 'none';
             
+            sounds.new();
             renderPhrase();
         }
 
@@ -185,6 +245,7 @@
             container.innerHTML = "";
             
             const words = currentPhrase.split(" ");
+            let allRevealed = true;
             
             words.forEach(word => {
                 const wordDiv = document.createElement('div');
@@ -199,6 +260,8 @@
                         if (guessedLetters.has(char)) {
                             box.innerText = char;
                             box.classList.add('revealed');
+                        } else {
+                            allRevealed = false;
                         }
                     } else {
                         box.className = "letter-box revealed"; 
@@ -211,10 +274,14 @@
                 
                 container.appendChild(wordDiv);
             });
+
+            if (allRevealed && !isGameWon && currentPhrase.length > 0) {
+                handleWin();
+            }
         }
 
         function handleGuess(letter) {
-            if (!currentPhrase || guessedLetters.has(letter)) return;
+            if (!currentPhrase || guessedLetters.has(letter) || isGameWon) return;
             
             guessedLetters.add(letter);
             
@@ -225,21 +292,44 @@
             const letterCount = currentPhrase.split(letter).length - 1;
 
             if (letterCount > 0) {
-                // Õige pakkumine: lisa punkte aktiivsele tiimile
                 const pointsToAdd = letterCount * 10;
                 if (activeTeam === 'A') scoreA += pointsToAdd;
                 else scoreB += pointsToAdd;
                 
                 span.className = "text-blue-400 px-2 animate-bounce";
+                sounds.correct();
                 updateScoreDisplays();
             } else {
-                // Vale pakkumine: vaheta tiimi
                 span.className = "text-slate-600 px-2";
+                sounds.wrong();
                 switchTeam();
             }
             
             usedEl.appendChild(span);
             renderPhrase();
+        }
+
+        function handleWin() {
+            isGameWon = true;
+            sounds.win();
+            
+            // Võiduefekt kastidele
+            document.querySelectorAll('.letter-box.revealed').forEach((el, i) => {
+                if (el.innerText !== " ") {
+                    setTimeout(() => {
+                        el.classList.add('win-animation');
+                        el.style.backgroundColor = '#10b981';
+                        el.style.borderColor = '#34d399';
+                    }, i * 30);
+                }
+            });
+
+            // Kuva võiduteavitus
+            setTimeout(() => {
+                document.getElementById('winPhraseDisplay').innerText = currentPhrase;
+                document.getElementById('winPointsDisplay').innerText = `Tiim ${activeTeam} võitis selle vooru!`;
+                document.getElementById('winOverlay').style.display = 'flex';
+            }, 1200);
         }
 
         function revealAll() {
@@ -250,6 +340,9 @@
         }
 
         document.addEventListener('keydown', (e) => {
+            // Aktiveeri AudioContext esimesel vajutusel (brauseri piirang)
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
             const key = e.key.toUpperCase();
             
             if (key === 'ENTER') {
